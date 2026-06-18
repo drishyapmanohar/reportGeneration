@@ -1,0 +1,22 @@
+<header class="header">
+  <div class="logo">FCT Report Demo</div>
+
+  <nav>
+    <a routerLink="/generate">Generate Report</a>
+    <a routerLink="/reports">Reports</a>
+  </nav>
+
+  <button
+    class="notification-btn"
+    routerLink="/reports"
+    (click)="clearNotifications()">
+
+    🔔
+
+    @if(notificationCount() > 0) {
+      <span class="badge">
+        {{ notificationCount() }}
+      </span>
+    }
+  </button>
+</header>
