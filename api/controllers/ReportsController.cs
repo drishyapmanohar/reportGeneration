@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using api.Data;
 using api.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Azure.Storage.Sas;
 
 namespace api.Controllers;
 
@@ -49,13 +50,6 @@ public class ReportsController : ControllerBase
         return Ok(job);
     }
 
-    [HttpGet("my-reports")]
-    public async Task<IActionResult> GetMyReports()
-    {
-        var jobs = await _reportService.GetMyReports();
-        return Ok(jobs);
-    }
-
     [HttpGet("download/{jobId:guid}")]
     public async Task<IActionResult> DownloadReport(Guid jobId)
     {
@@ -66,8 +60,14 @@ public class ReportsController : ControllerBase
             return NotFound();
         }
 
-        var connectionString = _configuration.GetConnectionString("BlobStorage");
-        var containerName = _configuration["AzureStorage:ContainerName"] ?? "reports";
+        var connectionString =
+            _configuration.GetConnectionString("BlobStorage")
+            ?? _configuration["BlobStorage"];
+
+        var containerName =
+            _configuration["AzureStorage:ContainerName"]
+            ?? _configuration["AzureStorageContainerName"]
+            ?? "reports";
 
         var blobServiceClient = new BlobServiceClient(connectionString);
         var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
@@ -78,13 +78,12 @@ public class ReportsController : ControllerBase
             return NotFound();
         }
 
-        var download = await blobClient.DownloadStreamingAsync();
-
-        return File(
-            download.Value.Content,
-            "text/csv",
-            $"credit-report-{jobId}.csv"
+        var sasUrl = blobClient.GenerateSasUri(
+            Azure.Storage.Sas.BlobSasPermissions.Read,
+            DateTimeOffset.UtcNow.AddMinutes(5)
         );
+
+        return Redirect(sasUrl.ToString());
     }
 
     [HttpGet("notifications/count")]
@@ -128,5 +127,21 @@ public class ReportsController : ControllerBase
         await _hubContext.Clients.All.SendAsync("ReportStatusUpdated", job);
         Console.WriteLine($"Broadcasting SignalR status: {job.Status} - {job.Id}");
         return Ok();
+    }
+
+    [HttpGet("my-reports")]
+    public async Task<IActionResult> GetMyReports(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _reportService.GetMyReports(page, pageSize);
+        return Ok(result);
+    }
+
+    [HttpGet("dashboard-summary")]
+    public async Task<IActionResult> GetDashboardSummary()
+    {
+        var result = await _reportService.GetDashboardSummary();
+        return Ok(result);
     }
 }

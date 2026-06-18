@@ -14,66 +14,93 @@ import { DatePipe } from '@angular/common';
 export class ReportsComponent implements OnInit {
   page = signal(1);
   pageSize = 10;
+  dashboard = signal({
+    totalReports: 0,
+    completedReports: 0,
+    inProgressReports: 0,
+    failedReports: 0
+  });
+  constructor(
+    public polling: ReportPollingService,
+    public api: ReportApiService,
+    public signalr: ReportSignalrService
+  ) {
+    effect(() => {
+      const updatedJob = this.signalr.reportUpdated();
 
-  pagedJobs() {
-    const start = (this.page() - 1) * this.pageSize;
-    return this.polling.jobs().slice(start, start + this.pageSize);
+      if (updatedJob) {
+
+        this.polling.loadReports(this.page(), this.pageSize);
+        this.loadDashboardSummary();
+
+        // fallback check
+        if (updatedJob.status === 'InProgress') {
+          setTimeout(() => {
+            this.polling.loadReports(this.page(), this.pageSize);
+            this.loadDashboardSummary();
+          }, 15000);
+        }
+      }
+    }, { allowSignalWrites: true });
   }
 
-  totalPages() {
-    return Math.ceil(this.polling.jobs().length / this.pageSize) || 1;
+  ngOnInit() {
+    this.polling.loadReports(this.page(), this.pageSize);
+    this.loadDashboardSummary();
+
+    this.api.markNotificationsRead()
+      .subscribe(() => {
+        this.signalr.notificationCount.set(0);
+      });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.polling.loadReports(this.page(), this.pageSize);
+      }
+    });
+  }
+
+  totalReports() {
+    return this.dashboard().totalReports;
+  }
+
+  completedReports() {
+    return this.dashboard().completedReports;
+  }
+
+  inProgressReports() {
+    return this.dashboard().inProgressReports;
+  }
+
+  failedReports() {
+    return this.dashboard().failedReports;
   }
 
   nextPage() {
-    if (this.page() < this.totalPages()) {
+    if (this.page() < this.polling.totalPages()) {
       this.page.update(p => p + 1);
+      this.polling.loadReports(this.page(), this.pageSize);
     }
   }
 
   previousPage() {
     if (this.page() > 1) {
       this.page.update(p => p - 1);
+      this.polling.loadReports(this.page(), this.pageSize);
     }
   }
 
-  constructor(
-    public polling: ReportPollingService,
-    public api: ReportApiService,
-    private signalr: ReportSignalrService
-  ) {
-    effect(() => {
-      const updatedJob = this.signalr.reportUpdated();
-
-      if (updatedJob) {
-        console.log('Updating table with SignalR job:', updatedJob);
-        this.polling.updateJob(updatedJob);
-      }
-    }, { allowSignalWrites: true });
+  totalPages() {
+    return this.polling.totalPages();
   }
 
-  ngOnInit() {
-    this.polling.loadReports();
-
-    this.api.markNotificationsRead()
-      .subscribe(() => {
-        this.signalr.notificationCount.set(0);
-      });
+  pagedJobs() {
+    return this.polling.jobs();
   }
 
-  totalReports() {
-    return this.polling.jobs().length;
+  loadDashboardSummary() {
+    this.api.getDashboardSummary().subscribe(res => {
+      this.dashboard.set(res);
+    });
   }
-
-  completedReports() {
-    return this.polling.jobs().filter(x => x.status === 'Completed').length;
-  }
-
-  inProgressReports() {
-    return this.polling.jobs().filter(x => x.status === 'InProgress').length;
-  }
-
-  failedReports() {
-    return this.polling.jobs().filter(x => x.status === 'Failed').length;
-  }
-
 }

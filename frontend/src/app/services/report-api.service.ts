@@ -21,9 +21,9 @@ export class ReportApiService {
     return this.http.get<ReportJob>(`${this.baseUrl}/status/${jobId}`);
   }
 
-  getMyReports() {
-    return this.http.get<ReportJob[]>(`${this.baseUrl}/my-reports`);
-  }
+  // getMyReports() {
+  //   return this.http.get<ReportJob[]>(`${this.baseUrl}/my-reports`);
+  // }
 
   getDownloadUrl(fileUrl?: string) {
     if (!fileUrl) return '';
@@ -39,8 +39,19 @@ export class ReportApiService {
 
   markNotificationsRead() {
     return this.http.post(
-      'http://localhost:5047/api/reports/notifications/read',
-      {}
+      `${this.baseUrl}/notifications/read`,{}
     );
   }
+
+  getMyReports(page: number, pageSize: number) {
+    return this.http.get<any>(
+      `${this.baseUrl}/my-reports?page=${page}&pageSize=${pageSize}`
+    );
+  }
+
+  getDashboardSummary() {
+  return this.http.get<any>(
+    `${this.baseUrl}/dashboard-summary`
+  );
+}
 }

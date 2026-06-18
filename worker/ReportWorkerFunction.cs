@@ -75,19 +75,24 @@ public class ReportWorkerFunction
             job.ErrorMessage = null;
 
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Report completed in DB: {JobId}", jobId);
+
+            await Task.Delay(500);
+
             Console.WriteLine($"NOTIFY: {job.Status} - {job.Id}");
             await NotifyApi(id);
 
-            _logger.LogInformation("Report completed: {JobId}", jobId);
+            _logger.LogInformation("Report completed notification sent: {JobId}", jobId);
         }
         catch (Exception ex)
         {
             job.Status = "Failed";
-            await NotifyApi(id);
             job.ErrorMessage = ex.Message;
             job.CompletedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
+            await NotifyApi(id);
 
             _logger.LogError(ex, "Report failed: {JobId}", jobId);
             throw;

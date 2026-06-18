@@ -44,15 +44,41 @@ public class ReportService
         return await _db.ReportJobs.FindAsync(jobId);
     }
 
-    public async Task<List<ReportJob>> GetMyReports()
-    {
-        return await _db.ReportJobs
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync();
-    }
-
     public async Task<ReportJob?> GetReportForDownload(Guid jobId)
     {
         return await _db.ReportJobs.FindAsync(jobId);
+    }
+
+    public async Task<object> GetMyReports(int page = 1, int pageSize = 10)
+    {
+        var query = _db.ReportJobs
+            .OrderByDescending(x => x.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new
+        {
+            items,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
+    }
+
+    public async Task<object> GetDashboardSummary()
+    {
+        return new
+        {
+            totalReports = await _db.ReportJobs.CountAsync(),
+            completedReports = await _db.ReportJobs.CountAsync(x => x.Status == "Completed"),
+            inProgressReports = await _db.ReportJobs.CountAsync(x => x.Status == "InProgress"),
+            failedReports = await _db.ReportJobs.CountAsync(x => x.Status == "Failed")
+        };
     }
 }
