@@ -1,5 +1,4 @@
 import { Injectable, signal } from '@angular/core';
-import { interval, startWith, switchMap, takeWhile } from 'rxjs';
 import { ReportJob } from '../models/report-job';
 import { ReportApiService } from './report-api.service';
 
@@ -8,7 +7,6 @@ import { ReportApiService } from './report-api.service';
 })
 export class ReportPollingService {
   jobs = signal<ReportJob[]>([]);
-  private activeJobIds = new Set<string>();
 
   constructor(private api: ReportApiService) {}
 
@@ -18,32 +16,28 @@ export class ReportPollingService {
     });
   }
 
-  startPolling(jobId: string) {
-    if (this.activeJobIds.has(jobId)) {
-      return;
+  updateJob(updatedJob: ReportJob) {
+  this.jobs.update(jobs => {
+    const existingJob = jobs.find(j =>
+      j.id.toLowerCase() === updatedJob.id.toLowerCase()
+    );
+
+    // Ignore duplicate same-status SignalR events
+    if (existingJob && existingJob.status === updatedJob.status) {
+      return jobs;
     }
 
-    this.activeJobIds.add(jobId);
+    const exists = !!existingJob;
 
-    interval(5000).pipe(
-      startWith(0),
-      switchMap(() => this.api.getStatus(jobId)),
-      takeWhile(
-        job => job.status !== 'Completed' && job.status !== 'Failed',
-        true
-      )
-    ).subscribe((job: ReportJob) => {
-      this.updateJob(job);
+    if (!exists) {
+      return [updatedJob, ...jobs];
+    }
 
-      if (job.status === 'Completed' || job.status === 'Failed') {
-        this.activeJobIds.delete(jobId);
-      }
-    });
-  }
-
-  private updateJob(job: ReportJob) {
-    const currentJobs = this.jobs();
-    const filteredJobs = currentJobs.filter(x => x.id !== job.id);
-    this.jobs.set([job, ...filteredJobs]);
-  }
+    return jobs.map(job =>
+      job.id.toLowerCase() === updatedJob.id.toLowerCase()
+        ? { ...job, ...updatedJob }
+        : job
+    );
+  });
+}
 }
