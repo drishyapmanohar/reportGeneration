@@ -1,0 +1,24 @@
+<section class="page">
+  <div class="card">
+    <h1>Generate Credit Report</h1>
+
+    <p>
+      Submit a long-running report request. The API immediately returns a Job ID,
+      while Azure Service Bus and Azure Functions process the report in the background.
+    </p>
+
+    <button
+      class="generate-btn"
+      (click)="generateReport()"
+      [disabled]="loading">
+
+      {{ loading ? 'Submitting...' : 'Generate Report' }}
+    </button>
+
+    @if (message) {
+      <div class="message">
+        {{ message }}
+      </div>
+    }
+  </div>
+</section>
