@@ -11,15 +11,21 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularApp", policy =>
     {
-       policy.AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()
-        .SetIsOriginAllowed(_ => true);
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(_ => true);
     });
 });
 
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DefaultConnection");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
+
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<ServiceBusQueueService>();
 builder.Services.AddSignalR();
