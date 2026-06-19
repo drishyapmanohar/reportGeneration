@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, computed, signal } from '@angular/core';
+import { Component, OnInit, effect, signal } from '@angular/core';
 import { ReportPollingService } from '../../services/report-polling.service';
 import { ReportSignalrService } from '../../services/report-signalr.service';
 import { ReportApiService } from '../../services/report-api.service';
@@ -14,12 +14,14 @@ import { DatePipe } from '@angular/common';
 export class ReportsComponent implements OnInit {
   page = signal(1);
   pageSize = 10;
+
   dashboard = signal({
     totalReports: 0,
     completedReports: 0,
     inProgressReports: 0,
     failedReports: 0
   });
+
   constructor(
     public polling: ReportPollingService,
     public api: ReportApiService,
@@ -29,11 +31,11 @@ export class ReportsComponent implements OnInit {
       const updatedJob = this.signalr.reportUpdated();
 
       if (updatedJob) {
+        console.log('SignalR update received in Reports page:', updatedJob);
 
         this.polling.loadReports(this.page(), this.pageSize);
         this.loadDashboardSummary();
 
-        // fallback check
         if (updatedJob.status === 'InProgress') {
           setTimeout(() => {
             this.polling.loadReports(this.page(), this.pageSize);
@@ -48,15 +50,30 @@ export class ReportsComponent implements OnInit {
     this.polling.loadReports(this.page(), this.pageSize);
     this.loadDashboardSummary();
 
-    this.api.markNotificationsRead()
-      .subscribe(() => {
-        this.signalr.notificationCount.set(0);
-      });
+    this.api.markNotificationsRead().subscribe(() => {
+      this.signalr.notificationCount.set(0);
+    });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.polling.loadReports(this.page(), this.pageSize);
+        this.loadDashboardSummary();
       }
+    });
+
+    setInterval(() => {
+      this.polling.loadReports(this.page(), this.pageSize);
+      this.loadDashboardSummary();
+
+      this.api.getNotificationCount().subscribe(count => {
+        this.signalr.notificationCount.set(count);
+      });
+    }, 5000);
+  }
+
+  loadDashboardSummary() {
+    this.api.getDashboardSummary().subscribe(res => {
+      this.dashboard.set(res);
     });
   }
 
@@ -96,11 +113,5 @@ export class ReportsComponent implements OnInit {
 
   pagedJobs() {
     return this.polling.jobs();
-  }
-
-  loadDashboardSummary() {
-    this.api.getDashboardSummary().subscribe(res => {
-      this.dashboard.set(res);
-    });
   }
 }
