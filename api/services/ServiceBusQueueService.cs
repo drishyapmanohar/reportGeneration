@@ -13,7 +13,7 @@ public class ServiceBusQueueService
 
     public async Task SendReportJobAsync(Guid jobId)
     {
-        var connectionString = _configuration.GetConnectionString("ServiceBus");
+        var connectionString = _configuration["ServiceBusConnection"]
         var queueName = _configuration["ServiceBus:QueueName"] ?? "report-jobs";
 
         await using var client = new ServiceBusClient(connectionString);
