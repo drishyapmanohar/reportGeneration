@@ -2,11 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ReportJob } from '../models/report-job';
 
+const isProduction = window.location.hostname !== 'localhost';
+const apiBase = isProduction 
+  ? 'https://report-demo-worker-drishya.azurewebsites.net' 
+  : 'http://localhost:5047';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ReportApiService {
-  private baseUrl = 'http://localhost:5047/api/reports';
+
+  
+  private baseUrl = `${apiBase}/api/reports`;
 
   constructor(private http: HttpClient) {}
 
@@ -28,7 +35,7 @@ export class ReportApiService {
   getDownloadUrl(fileUrl?: string) {
     if (!fileUrl) return '';
     if (fileUrl.startsWith('http')) return fileUrl;
-    return `http://localhost:5047${fileUrl}`;
+    return `${apiBase}${fileUrl}`;
   }
 
   getNotificationCount() {

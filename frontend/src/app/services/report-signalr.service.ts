@@ -1,6 +1,11 @@
 import { Injectable, NgZone, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 
+const isProduction = window.location.hostname !== 'localhost';
+const apiBase = isProduction 
+  ? 'https://report-demo-worker-drishya.azurewebsites.net' 
+  : 'http://localhost:5047';
+  
 @Injectable({
   providedIn: 'root'
 })
@@ -20,7 +25,7 @@ export class ReportSignalrService {
     }
 
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5047/reportHub')
+      .withUrl(`${apiBase}/reportHub`)
       .withAutomaticReconnect()
       .build();
 
