@@ -68,7 +68,7 @@ public class ReportsController : ControllerBase
             _configuration["AzureStorage:ContainerName"]
             ?? _configuration["AzureStorageContainerName"]
             ?? "reports";
-
+console.WriteLine($"BlobStorage = [{connectionString}]")
         var blobServiceClient = new BlobServiceClient(connectionString);
         var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         var blobClient = containerClient.GetBlobClient(job.FilePath);
