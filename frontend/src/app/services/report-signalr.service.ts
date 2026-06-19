@@ -3,7 +3,7 @@ import * as signalR from '@microsoft/signalr';
 
 const isProduction = window.location.hostname !== 'localhost';
 const apiBase = isProduction 
-  ? 'https://report-demo-worker-drishya.azurewebsites.net' 
+  ? 'https://reportgeneration-4nmh.onrender.com' 
   : 'http://localhost:5047';
   
 @Injectable({
