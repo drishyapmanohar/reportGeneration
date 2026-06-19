@@ -60,15 +60,13 @@ public class ReportsController : ControllerBase
             return NotFound();
         }
 
-        var connectionString =
-            _configuration.GetConnectionString("BlobStorage")
-            ?? _configuration["BlobStorage"];
+        var connectionString = Environment.GetEnvironmentVariable("BlobStorage");
 
         var containerName =
-            _configuration["AzureStorage:ContainerName"]
-            ?? _configuration["AzureStorageContainerName"]
-            ?? "reports";
-Console.WriteLine($"BlobStorage = [{connectionString}]");
+            Environment.GetEnvironmentVariable("AzureStorageContainerName") ?? "reports";
+        
+        Console.WriteLine($"BlobStorage = [{connectionString}]");
+        
         var blobServiceClient = new BlobServiceClient(connectionString);
         var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         var blobClient = containerClient.GetBlobClient(job.FilePath);
